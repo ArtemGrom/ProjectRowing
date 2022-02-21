@@ -32,7 +32,7 @@ class RaceBoat(Base):
 
 
 class RaceBoatIntermidiate(Base):
-    __tablename__ = "race_boat_intermidiate"
+    __tablename__ = "race_boat_intermediate"
 
     id = Column(Integer, primary_key=True, index=True)
     raceBoatId = Column(Integer, ForeignKey("race_boat.id"))

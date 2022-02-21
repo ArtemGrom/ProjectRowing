@@ -9,6 +9,7 @@ class AbstractETL(ABC):
 
     @abstractmethod
     def extract(self):
+        """ """
         ...
 
     @abstractmethod
