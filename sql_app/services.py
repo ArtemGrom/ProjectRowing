@@ -85,6 +85,7 @@ class InitDataRaceBoatModel(AbstractETL):
         self.model = model
 
         self.race_boats_df = None
+        self.race_boat_intermediates = []
 
         super().__init__()
 
@@ -102,6 +103,8 @@ class InitDataRaceBoatModel(AbstractETL):
 
     def transform(self):
         """Убираем столбцы, при необходимости преобразуем данные"""
+        self.race_boat_intermediates = self.race_boats_df["raceBoatIntermediates"]
+
         columns = [
             "id",
             "raceId",  # Foreign Key Race model
@@ -126,23 +129,42 @@ class InitDataRaceBoatModel(AbstractETL):
 
 
 class InitDataRaceBoatIntermediateModel(AbstractETL):
-    def __init__(self, competition_id, model):
-        self.competition_id = competition_id
+    def __init__(self, race_boat_intermediates, model):
         self.model = model
+
+        self.race_boat_intermediates = race_boat_intermediates
+        self.race_boat_intermediates_df = None
 
         super().__init__()
 
     def extract(self):
         """Загрузка из API"""
-        ...
 
-    def trasform(self):
+        self.race_boat_intermediates_df = pd.concat([pd.json_normalize(row) for row in self.race_boat_intermediates],
+                                                    ignore_index=True)
+
+    def transform(self):
         """Убираем столбцы, при необходимости преобразуем данные"""
-        ...
+        columns = [
+            'id',
+            'raceBoatId',
+            'Rank',
+            'ResultTime',
+            'distance.DisplayName'
+        ]
+        self.race_boat_intermediates_df = self.race_boat_intermediates_df[columns]
+
+        self.race_boat_intermediates_df = self.prepare_columns_names(self.race_boat_intermediates_df)
 
     def load(self):
         """Загрузка в уже существующую модель"""
-        ...
+        with engine.begin() as connection:  # https://docs.sqlalchemy.org/en/14/core/connections.html#using-transactions
+            self.race_boat_intermediates_df.to_sql(
+                self.model.__tablename__,
+                con=connection,
+                if_exists="replace",
+                index=False,
+            )
 
 
 if __name__ == '__main__':
@@ -152,3 +174,4 @@ if __name__ == '__main__':
     races_ids = races.races_in_competition_df["id"]
     boats = InitDataRaceBoatModel(races_ids, model=models.RaceBoat)
 
+    boat_intermediates = InitDataRaceBoatIntermediateModel(boats.race_boat_intermediates, models.RaceBoatIntermidiate)
