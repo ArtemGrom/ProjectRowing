@@ -3,6 +3,9 @@ from abc import ABC, abstractmethod
 import requests
 import pandas as pd
 
+from sql_app.database import engine
+from sql_app import models
+
 
 class AbstractETL(ABC):
     def __init__(self):
@@ -62,7 +65,13 @@ class InitDataRaceModel(AbstractETL):
 
     def load(self):
         """Загрузка в уже существующую модель"""
-        ...
+        with engine.begin() as connection:  # https://docs.sqlalchemy.org/en/14/core/connections.html#using-transactions
+            self.races_in_competition_df.to_sql(
+                self.model.__tablename__,
+                con=connection,
+                if_exists="replace",
+                index=False,
+            )
 
 
 class InitDataRaceBoatModel(AbstractETL):
@@ -107,5 +116,4 @@ class InitDataRaceBoatIntermediateModel(AbstractETL):
 
 if __name__ == '__main__':
     competition = "ccb6e115-c342-4948-b8e6-4525ff6d7832"  # WorldRowingCup III
-    races = InitDataRaceModel(competition, "test_model")
-    print(races.races_in_competition_df)
+    races = InitDataRaceModel(competition, model=models.Race)
