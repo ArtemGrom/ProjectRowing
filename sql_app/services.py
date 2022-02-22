@@ -55,6 +55,11 @@ class InitDataRaceModel(AbstractETL):
         ]
         self.races_in_competition_df = self.races_in_competition_df[columns]
 
+        self.races_in_competition_df["DateString"] = pd.to_datetime(self.races_in_competition_df["DateString"], utc=True)
+
+        self.races_in_competition_df.columns = self.races_in_competition_df.columns.str.replace(".", "")
+        self.races_in_competition_df.columns = self.races_in_competition_df.columns.map(lambda col: col[0].lower() + col[1:])
+
     def load(self):
         """Загрузка в уже существующую модель"""
         ...
