@@ -33,6 +33,7 @@ class AbstractETL(ABC):
 
         return df
 
+
 class InitDataRaceModel(AbstractETL):
     def __init__(self, competition_id, model):
         self.competition_id = competition_id
