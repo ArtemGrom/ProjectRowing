@@ -1,2 +1,1 @@
-web: gunicorn app:server
-release: python main.py db upgrade
+web: gunicorn app:main
