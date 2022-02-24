@@ -7,7 +7,7 @@ import plotly.express as px
 
 from sql_app.models import RaceBoatIntermidiate, RaceBoat
 from sql_app.services import InitDataRaceBoatIntermediateModel, InitDataRaceBoatModel, \
-    load_to_sql_competition, InitDataRaceModel
+    load_to_sql_competition
 
 conn_first = sqlite3.connect("races")
 data_races_first_connection = pd.read_sql_query("select * from races", conn_first)
