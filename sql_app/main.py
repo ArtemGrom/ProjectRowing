@@ -6,9 +6,10 @@ import pandas as pd
 import plotly.express as px
 
 from sql_app.crud import dict_country
-from sql_app.models import RaceBoatIntermidiate, Race, RaceBoat
-from sql_app.services import InitDataRaceBoatIntermediateModel, InitDataRaceModel, InitDataRaceBoatModel, \
+from sql_app.models import RaceBoatIntermidiate, RaceBoat
+from sql_app.services import InitDataRaceBoatIntermediateModel, InitDataRaceBoatModel, \
     load_to_sql_competition
+
 
 conn_first = sqlite3.connect("races")
 data_races_first_connection = pd.read_sql_query("select * from races", conn_first)
@@ -23,7 +24,7 @@ data_races_boat_intermediate_first_connection = pd.read_sql_query(
 )
 
 
-def _connect(data_races_boat, data_races_boat_intermediate):
+def _transform_data(data_races_boat, data_races_boat_intermediate):
     list_countries_done = []
     list_rank_country = []
 
@@ -36,14 +37,14 @@ def _connect(data_races_boat, data_races_boat_intermediate):
 
     list_distance = [i for i in data_races_boat_intermediate["distance.DisplayName"]]
     list_rank = [i for i in data_races_boat_intermediate["Rank"]]
-    list_all = [list_distance, list_rank, list_countries_done]
+    list_all = [list_distance, list_rank, list_countries_done, list_rank_country]
     return list_all
 
 
 data_df = pd.DataFrame({
-    "Дистанция": _connect(data_races_boat_first_connection, data_races_boat_intermediate_first_connection)[0],
-    "Место": _connect(data_races_boat_first_connection, data_races_boat_intermediate_first_connection)[1],
-    "Страны": _connect(data_races_boat_first_connection, data_races_boat_intermediate_first_connection)[2]
+    "Дистанция": _transform_data(data_races_boat_first_connection, data_races_boat_intermediate_first_connection)[0],
+    "Место": _transform_data(data_races_boat_first_connection, data_races_boat_intermediate_first_connection)[1],
+    "Страны": _transform_data(data_races_boat_first_connection, data_races_boat_intermediate_first_connection)[2]
 })
 figure_init = px.bar(
     data_df,
@@ -71,9 +72,13 @@ fig_boat = px.bar(
     title="График заезда с отображением конечного результата по времени",
 )
 
-for i in range(len(data_races_boat_first_connection['Rank'])):
-    if data_races_boat_first_connection['Rank'][i] == 1:
-        country = data_races_boat_first_connection['DisplayName'][i]
+
+def _display_country(data_races_boat):
+    for i in range(len(data_races_boat['Rank'])):
+        if data_races_boat['Rank'][i] == 1:
+            country = data_races_boat['DisplayName'][i]
+    return country
+
 
 races_in_competition = load_to_sql_competition.transform()
 
@@ -121,17 +126,7 @@ app.layout = html.Div(
                 ),
             ]
         ),
-        # html.Div(
-        #    children=[
-        #        html.P(
-        #            children=f"Страна {country}, занявшая 1 место проплыла со следующими результатами "
-        #                     f"контрольные отметки {list_rank_country[0]} место на 500 м. - {list_rank_country[1]} "
-        #                     f"место на 1000 м. - {list_rank_country[2]} место на 1500 м. - "
-        #                     f"{list_rank_country[3]} место на 2000 м.",
-        #            style={"fontSize": "18px", "color": "black", "text-align": "center"},
-        #        ),
-        #    ],
-        # ),
+        html.Div(id="display", style={"fontSize": "18px", "color": "black", "text-align": "center"}),
         html.Div(
             children=[
                 html.Div(
@@ -142,17 +137,9 @@ app.layout = html.Div(
                     ),
                     className="card",
                 ),
-                html.Div(
-                    children=dcc.Graph(
-                        figure=fig_boat,
-                        config={"displayModeBar": False},
-                    ),
-                    className="card",
-                ),
             ],
             className="wrapper",
         ),
-        html.Div(id='my-output', ),
     ],
 )
 list_id = []
@@ -164,16 +151,8 @@ def update_figure(competition):
     for row in dict_country.keys():
         if competition == row:
             list_id.append(dict_country[competition])
-
     init_race_names = InitDataRaceBoatModel(list_id[-1], RaceBoat)
-    init_race_names.extract()
-    init_race_names.transform()
-    init_race_names.load()
-
     init_race_phase_names = InitDataRaceBoatIntermediateModel(list_id[-1], RaceBoatIntermidiate)
-    init_race_phase_names.extract()
-    init_race_phase_names.transform()
-    init_race_phase_names.load()
 
     conn_to_race_boat_second = sqlite3.connect("race_boat")
     conn_to_race_boat_intermediate_second = sqlite3.connect("race_boat_intermediate")
@@ -185,9 +164,9 @@ def update_figure(competition):
     )
 
     data_fig_df = pd.DataFrame({
-        "Дистанция": _connect(data_races_boat_second, data_races_boat_intermediate_second)[0],
-        "Место": _connect(data_races_boat_second, data_races_boat_intermediate_second)[1],
-        "Страны": _connect(data_races_boat_second, data_races_boat_intermediate_second)[2]
+        "Дистанция": _transform_data(data_races_boat_second, data_races_boat_intermediate_second)[0],
+        "Место": _transform_data(data_races_boat_second, data_races_boat_intermediate_second)[1],
+        "Страны": _transform_data(data_races_boat_second, data_races_boat_intermediate_second)[2]
     })
     fig = px.bar(
         data_fig_df,
@@ -198,6 +177,32 @@ def update_figure(competition):
         title="График заезда с отображением места на каждой из промежуточных точек",
     )
     return fig
+
+
+list_id_third = []
+
+@app.callback(Output('display', 'children'),
+              Input('competition', 'value'))
+def update_output_div(input_value):
+    for row in dict_country.keys():
+        if input_value == row:
+            list_id_third.append(dict_country[input_value])
+    init_race_names_result = InitDataRaceBoatModel(list_id_third[-1], RaceBoat)
+    init_race_phase_names_result = InitDataRaceBoatIntermediateModel(list_id_third[-1], RaceBoatIntermidiate)
+
+    conn_to_race_boat_third = sqlite3.connect("race_boat")
+    data_races_boat_third = pd.read_sql_query("select * from race_boat", conn_to_race_boat_third)
+    conn_to_race_boat_intermediate_third = sqlite3.connect("race_boat_intermediate")
+    data_races_boat_intermediate_third = pd.read_sql_query(
+        "select * from race_boat_intermediate",
+        conn_to_race_boat_intermediate_third
+    )
+    country = _display_country(data_races_boat_third)
+    return f"Страна {country}, занявшая 1 место проплыла со следующими результатами контрольные отметки " \
+           f"{_transform_data(data_races_boat_third, data_races_boat_intermediate_third)[3][0]} место на 500 м. - " \
+           f"{_transform_data(data_races_boat_third, data_races_boat_intermediate_third)[3][1]} место на 1000 м. - " \
+           f"{_transform_data(data_races_boat_third, data_races_boat_intermediate_third)[3][2]} место на 1500 м. - " \
+           f"{_transform_data(data_races_boat_third, data_races_boat_intermediate_third)[3][3]} место на 2000 м."
 
 
 if __name__ == '__main__':
