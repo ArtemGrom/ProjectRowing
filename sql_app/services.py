@@ -7,7 +7,6 @@ from sql_app.models import Race, RaceBoat, RaceBoatIntermidiate
 
 
 class AbstractETL(ABC):
-
     def __init__(self):
         self.extract()
         self.transform()
@@ -30,7 +29,7 @@ class AbstractETL(ABC):
 
 
 class InitDataRaceModel(AbstractETL):
-    def __init__(self, competition_id: str, model):
+    def __init__(self, competition_id, model):
         self.competition_id = competition_id
         self.model = model
         super().__init__()
@@ -69,7 +68,7 @@ class InitDataRaceModel(AbstractETL):
 
 
 class InitDataRaceBoatModel(AbstractETL):
-    def __init__(self, race_id: str, model):
+    def __init__(self, race_id, model):
         self.race_id = race_id
         self.model = model
         super().__init__()

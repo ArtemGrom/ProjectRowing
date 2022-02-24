@@ -1,25 +1,24 @@
 from sql_app.models import Race
 from sql_app.services import InitDataRaceModel
 
-races_in_competition_df = InitDataRaceModel("ccb6e115-c342-4948-b8e6-4525ff6d7832", Race)
-races_in_competition_df = races_in_competition_df.transform()
 
-set_names_races = {i for i in races_in_competition_df["event.DisplayName"]}
+def _create_dict_country():
+    races_in_competition_df = InitDataRaceModel("ccb6e115-c342-4948-b8e6-4525ff6d7832", Race)
+    races_in_competition_df = races_in_competition_df.transform()
 
-dict_country = {}
-list_names = []
+    set_names_races = {i for i in races_in_competition_df["event.DisplayName"]}
 
-for row in range(len(races_in_competition_df["racePhase.DisplayName"])):
-    if races_in_competition_df["racePhase.DisplayName"][row] == "Final":
-        x = races_in_competition_df["id"][row]
-        y = races_in_competition_df["event.DisplayName"][row]
-        list_names.append((y, x))
+    dict_country = {}
+    list_names = []
 
-dict_country.update(tuple(list_names))
+    for row in range(len(races_in_competition_df["racePhase.DisplayName"])):
+        if races_in_competition_df["racePhase.DisplayName"][row] == "Final":
+            x = races_in_competition_df["id"][row]
+            y = races_in_competition_df["event.DisplayName"][row]
+            list_names.append((y, x))
 
-if __name__ == '__main__':
-    print(set_names_races)
-    print(dict_country)
+    dict_country.update(tuple(list_names))
+
 
 
 

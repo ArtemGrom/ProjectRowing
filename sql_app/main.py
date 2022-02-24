@@ -5,11 +5,9 @@ from dash import Dash, dcc, html
 import pandas as pd
 import plotly.express as px
 
-from sql_app.crud import dict_country
 from sql_app.models import RaceBoatIntermidiate, RaceBoat
 from sql_app.services import InitDataRaceBoatIntermediateModel, InitDataRaceBoatModel, \
-    load_to_sql_competition
-
+    load_to_sql_competition, InitDataRaceModel
 
 conn_first = sqlite3.connect("races")
 data_races_first_connection = pd.read_sql_query("select * from races", conn_first)
@@ -41,13 +39,29 @@ def _transform_data(data_races_boat, data_races_boat_intermediate):
     return list_all
 
 
-data_df = pd.DataFrame({
+def _create_dict_country(races_in_competition_df):
+    dict_country = {}
+    list_names = []
+    for row in range(len(races_in_competition_df["racePhase.DisplayName"])):
+        if races_in_competition_df["racePhase.DisplayName"][row] == "Final":
+            x = races_in_competition_df["id"][row]
+            y = races_in_competition_df["event.DisplayName"][row]
+            list_names.append((y, x))
+
+    dict_country.update(tuple(list_names))
+    return dict_country
+
+
+dict_country_result = load_to_sql_competition.transform()
+dict_country_result = _create_dict_country(dict_country_result)
+
+data_first_df = pd.DataFrame({
     "Дистанция": _transform_data(data_races_boat_first_connection, data_races_boat_intermediate_first_connection)[0],
     "Место": _transform_data(data_races_boat_first_connection, data_races_boat_intermediate_first_connection)[1],
     "Страны": _transform_data(data_races_boat_first_connection, data_races_boat_intermediate_first_connection)[2]
 })
 figure_init = px.bar(
-    data_df,
+    data_first_df,
     x="Дистанция",
     y="Место",
     color="Страны",
@@ -74,10 +88,11 @@ fig_boat = px.bar(
 
 
 def _display_country(data_races_boat):
+    global country_display
     for i in range(len(data_races_boat['Rank'])):
         if data_races_boat['Rank'][i] == 1:
-            country = data_races_boat['DisplayName'][i]
-    return country
+            country_display = data_races_boat['DisplayName'][i]
+    return country_display
 
 
 races_in_competition = load_to_sql_competition.transform()
@@ -148,9 +163,9 @@ list_id = []
 @app.callback(Output('plot', 'figure'),
               [Input('competition', 'value')])
 def update_figure(competition):
-    for row in dict_country.keys():
+    for row in dict_country_result.keys():
         if competition == row:
-            list_id.append(dict_country[competition])
+            list_id.append(dict_country_result[competition])
     init_race_names = InitDataRaceBoatModel(list_id[-1], RaceBoat)
     init_race_phase_names = InitDataRaceBoatIntermediateModel(list_id[-1], RaceBoatIntermidiate)
 
@@ -184,9 +199,9 @@ list_id_third = []
 @app.callback(Output('display', 'children'),
               Input('competition', 'value'))
 def update_output_div(input_value):
-    for row in dict_country.keys():
+    for row in dict_country_result.keys():
         if input_value == row:
-            list_id_third.append(dict_country[input_value])
+            list_id_third.append(dict_country_result[input_value])
     init_race_names_result = InitDataRaceBoatModel(list_id_third[-1], RaceBoat)
     init_race_phase_names_result = InitDataRaceBoatIntermediateModel(list_id_third[-1], RaceBoatIntermidiate)
 
