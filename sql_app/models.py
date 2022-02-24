@@ -1,7 +1,7 @@
 from sqlalchemy import Column, ForeignKey, Integer, String, DateTime, Time
 from sqlalchemy.orm import relationship
 
-from .database import Base
+from sql_app.database import Base
 
 
 class Race(Base):
